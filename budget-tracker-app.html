@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Tracker</title>
+  <link rel="stylesheet" href="stylesheet.css">
+</head>
+
+<body>
+
+  <!-- LOADER -->
+  <div id="loader">
+    <div class="loader-title">Budget <span>Tracker</span></div>
+    <div class="loader-card">
+      <div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Load a file to get started</div>
+        <div style="font-size:13px;color:var(--muted);">Upload a bank statement CSV or a previously saved analysis.
+        </div>
+      </div>
+      <div class="upload-zone" id="loaderZone">
+        <input type="file" id="loaderFile" accept=".csv,.json">
+        <div class="upload-icon">📂</div>
+        <div class="upload-label">Click or drag a file here</div>
+        <div class="upload-sub">.csv bank statement &nbsp;·&nbsp; .json saved analysis</div>
+      </div>
+      <div class="file-chosen" id="fileChosen">
+        <span>📄</span><span id="fileChosenName"></span>
+      </div>
+      <button class="btn btn-primary" id="loaderBtn" disabled onclick="handleLoaderFile()">Open file →</button>
+    </div>
+  </div>
+
+  <!-- CATEGORISE -->
+  <div id="categorise">
+    <div class="screen-header">
+      <div>
+        <div class="screen-title">Categorise Transactions</div>
+        <div class="screen-sub" id="catSub">Deposit rows are automatically marked as Income. Assign categories to the
+          rest.</div>
+      </div>
+    </div>
+    <div class="quick-assign">
+      <span>Set all withdrawals to:</span>
+      <button class="quick-btn" onclick="setAll('food')">🍜 Food</button>
+      <button class="quick-btn" onclick="setAll('grocery')">🧺 Grocery</button>
+      <button class="quick-btn" onclick="setAll('travel')">✈️ Travel</button>
+      <button class="quick-btn" onclick="setAll('bills')">📋 Bills</button>
+      <button class="quick-btn" onclick="setAll('purchases')">🛍️ Purchases</button>
+      <button class="quick-btn" onclick="setAll('misc')">📦 Misc</button>
+      <button class="quick-btn" onclick="setAll('self')">👤 Self</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Party</th>
+            <th>Withdraw</th>
+            <th>Deposit</th>
+            <th>Balance</th>
+            <th>Category</th>
+          </tr>
+        </thead>
+        <tbody id="catBody"></tbody>
+      </table>
+    </div>
+    <div class="cat-footer">
+      <button class="btn btn-secondary" id="btnBack" onclick="showDashboard()">← Back</button>
+      <div class="progress-info"><strong id="catDone">0</strong> / <strong id="catTotal">0</strong> categorised</div>
+      <button class="btn btn-primary" onclick="finishCategorise()">Next →</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard">
+    <div class="dash-header">
+      <div>
+        <div class="screen-title">Dashboard</div>
+        <div class="screen-sub" id="dashSub"></div>
+      </div>
+      <div class="dash-actions">
+        <div class="upload-new-wrap">
+          <label class="btn btn-secondary">
+            <input type="file" accept=".csv" onchange="handleAddMore(this)" />
+            ＋ Add new statement</label>
+        </div>
+        <button class="btn btn-secondary" onclick="reCategorise()">All Transactions</button>
+        <button class="btn btn-save" onclick="saveAnalysis()">⬇ Save analysis</button>
+      </div>
+    </div>
+
+    <!-- 2-card summary row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Opening Balance</div>
+        <div class="stat-amount neutral" id="openBal">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Closing Balance</div>
+        <div class="stat-amount neutral" id="closeBal">—</div>
+      </div>
+    </div>
+
+    <div class="stats-row" style="margin-top:-12px;">
+      <div class="stat-card money-in clickable" id="statMoneyIn" onclick="openStatDrill('in')">
+        <div class="stat-label">💰 Money In</div>
+        <div class="stat-amount in" id="moneyIn">—</div>
+      </div>
+      <div class="stat-card money-out clickable" id="statMoneyOut" onclick="openStatDrill('out')">
+        <div class="stat-label">💸 Money Out</span></div>
+        <div class="stat-amount out" id="moneyOut">—</div>
+      </div>
+    </div>
+
+    <div class="section-label">By category — click to see transactions</div>
+    <div class="cat-grid" id="catGrid"></div>
+
+    <div id="drilldown">
+      <div class="drill-header">
+        <div class="drill-title" id="drillTitle"></div>
+        <div class="drill-badge" id="drillBadge"></div>
+        <div class="drill-badge" id="drillBadge2"></div>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;" id="toggleTransactionBtn"
+          onclick="toggleTransaction(true)">Hide All Transactions</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="closeDrill()">✕ Close</button>
+      </div>
+
+      <!-- month chart -->
+      <div class="drill-section-label">Month-on-month</div>
+      <div class="drill-chart-wrap">
+        <svg id="drillChart" width="100%" height="160"></svg>
+      </div>
+
+      <!-- monthly summary table -->
+      <div class="drill-month-wrap" style="margin-bottom:24px;">
+        <table class="drill-table">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Transactions</th>
+              <th id="drillMonthAmtHead">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="drillMonthBody"></tbody>
+        </table>
+      </div>
+
+      <!-- all transactions -->
+      <div id="allTransactionTable">
+        <div class="drill-section-label">All transactions</div>
+        <div class="drill-chart-wrap" id="expensesChartDiv">
+          <svg  id="expensesChart" width="100%" height="360"></svg>
+        </div>
+        <div class="drill-table-wrap">
+          <table class="drill-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Party</th>
+                <th>Category</th>
+                <th>Withdraw</th>
+                <th>Deposit</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="drillBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="scripts.js"></script>
+</body>
+
+</html>
